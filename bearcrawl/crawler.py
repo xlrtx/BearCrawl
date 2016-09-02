@@ -1,4 +1,5 @@
 import sys
+import random
 import requests
 import traceback
 import functools
@@ -7,10 +8,8 @@ from time import sleep
 import multiprocessing
 from multiprocessing.dummy import Pool as ThreadPool
 
-# TODO add proxy manager
-# TODO map don't respond to ctrl-c interrupt
-# TODO make filter func a compulsory field
 RETRY_TIMES = 10
+PROXIES = None
 
 
 def getn(urls, filter_func, map_reduce=True, ordered=False, chain_results=False, threads=None, **kwargs):
@@ -43,7 +42,7 @@ def requestn(method, urls, filter_func, map_reduce=True, ordered=False,
         if ordered:
             results = pool.map(functools.partial(__crawl, method, filter_func, **kwargs), urls)
         else:
-            results = pool.map_async(functools.partial(__crawl, method, filter_func, **kwargs), urls)\
+            results = pool.map_async(functools.partial(__crawl, method, filter_func, **kwargs), urls) \
                 .get(99999)
         pool.close()
         pool.join()
@@ -86,7 +85,38 @@ def __retry(func):
 
 @__retry
 def __crawl(method, filter_func, url, **kwargs):
-    r = requests.request(method, url, **kwargs)
+    if PROXIES and 'proxies' not in kwargs:
+        proxies = __pick_one_proxy()
+        r = requests.request(method, url, proxies=proxies, **kwargs)
+    else:
+        r = requests.request(method, url, **kwargs)
     if filter_func:
         return filter_func(r)
     return r
+
+
+def set_proxies(dict_proxies):
+    """
+    Set up proxies used for requests module
+    same as proxies filed passed to requests, but instead an array of proxies for each key
+    need install requests[socks] for socks proxies
+    after set, each request will select a random proxy to use
+    dict_proxies = {
+        'http': ['http://user:pass@10.10.1.10:3128/', 'http://10.10.1.10:3128'],
+        'https': ['http://user:pass@10.10.1.10:3128/', 'http://10.10.1.10:3128'],
+        'scheme://hostname': 'socks5://user:pass@host:port'
+    }
+    :param dict_proxies:
+    :return:
+    """
+    global PROXIES
+    PROXIES = dict_proxies
+
+
+def __pick_one_proxy():
+    if PROXIES is None:
+        return None
+    picked = {}
+    for k, v in PROXIES.iteritems():
+        picked[k] = random.choice(v)
+    return picked

@@ -37,7 +37,7 @@ class BaseMaster(object):
         :param domain: Domain name indicating which db name mongo will use and prefix redis key will use,
             you may want to name base on which site its crawling on.
         :param module: name of the collection, you may want to name it base on site's module name, like twitter.user
-        :param dict_params: task parameters
+        :param params: task parameters
         :param uuid: task id
         :return:
         """
@@ -80,6 +80,6 @@ class BaseMaster(object):
                 task.pop('status')
         return tasks
 
-    def sleep_forever(self):
+    def sleep(self):
         while True:
             sleep(1)

@@ -237,7 +237,6 @@ class DatabaseManager:
 
     ''' Redis Filter '''
 
-    # TODO too much round trip time for remote filtering
     def update_filter(self, task, filter_name, items):
         """
         Used by worker

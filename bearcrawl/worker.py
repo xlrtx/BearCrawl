@@ -36,7 +36,7 @@ class BaseWorker(object):
         self.__current_task = task
         self.__dbm.update_task_status_working(task)
         try:
-            self.task_handler(task)
+            self.task_handler(task['uuid'], task['domain'], task['module'], task['params'])
         except Exception:
             # TODO add error to detail
             self.__dbm.update_task_status_error(task)
@@ -52,7 +52,7 @@ class BaseWorker(object):
             self.__consume_queue()
 
     @abc.abstractmethod
-    def task_handler(self, task):
+    def task_handler(self, uuid, domain, module, params):
         raise TaskHandlerNotImplemented('Task handler not implemented')
 
     def save_dump(self, data):
@@ -71,12 +71,17 @@ class BaseWorker(object):
         """
         self.__dbm.update_task_progress(self.__current_task, dict_progress)
 
-    def read_progress(self):
+    def read_progress(self, key):
         """
         Read dict_progress from mongo task.task.progress
-        :return: dict_progress
+        :param key: progress key
+        :return: progress key's value
         """
-        return self.__dbm.read_task_progress(self.__current_task)
+        progress = self.__dbm.read_task_progress(self.__current_task)
+        if not progress:
+            return None
+        else:
+            return progress.get(key, None)
 
     def update_filter(self, filter_name, items):
         self.__dbm.update_filter(self.__current_task, filter_name, items)
