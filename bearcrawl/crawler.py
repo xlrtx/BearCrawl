@@ -104,7 +104,7 @@ def set_proxies(dict_proxies):
     dict_proxies = {
         'http': ['http://user:pass@10.10.1.10:3128/', 'http://10.10.1.10:3128'],
         'https': ['http://user:pass@10.10.1.10:3128/', 'http://10.10.1.10:3128'],
-        'scheme://hostname': 'socks5://user:pass@host:port'
+        'scheme://hostname': ['socks5://user:pass@host:port']
     }
     :param dict_proxies:
     :return:

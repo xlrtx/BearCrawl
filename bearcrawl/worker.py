@@ -1,38 +1,26 @@
+import abc
 import sys
 import traceback
 from db import DatabaseManager
+from task_queue import TaskQueueClient
 from error import TaskHandlerNotImplemented
-from multiprocessing.managers import BaseManager as QueueManager
-import abc
 
 
 class BaseWorker(object):
     def __init__(self, queue_password, queue_addr='127.0.0.1', queue_port=50000, mongo_conn=None,
                  redis_client=None):
 
-        # Register task queue
-        QueueManager.register('get_task_queue')
-
-        # Bind localhost
-        manager = QueueManager(address=(queue_addr, queue_port), authkey=queue_password)
-        manager.connect()
-
-        # Get queue from manager
-        self.__task_queue = manager.get_task_queue()
-
         # Setup mongo and redis
         self.__dbm = DatabaseManager(mongo_conn=mongo_conn, redis_client=redis_client)
+
+        # Setup task queue
+        self.__tqc = TaskQueueClient(queue_password, queue_addr=queue_addr, queue_port=queue_port)
 
         # Current task
         self.__current_task = None
 
-    def __get_task(self):
-        task = self.__task_queue.get()
-        self.__task_queue.task_done()
-        return task
-
     def __consume_queue(self):
-        task = self.__get_task()
+        task = self.__tqc.get_task()
         self.__current_task = task
         self.__dbm.update_task_status_working(task)
         try:

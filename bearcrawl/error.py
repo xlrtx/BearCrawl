@@ -5,3 +5,11 @@ class BearCrawlException(Exception):
 
 class TaskHandlerNotImplemented(BearCrawlException):
     """ Need implement task handler """
+
+
+class RPCQueueFull(BearCrawlException):
+    """ Queue is full """
+
+
+class RPCDBError(BearCrawlException):
+    """ DB Error """

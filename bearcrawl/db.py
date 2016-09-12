@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
 import redis
-from itertools import chain
+from pymongo.errors import PyMongoError
 
 
 class DatabaseManager:
@@ -97,7 +97,10 @@ class DatabaseManager:
             'module': task['module'],
             'params': task['params']
         }
-        col.update({'_id': formatted['_id']}, {'$set': formatted}, upsert=True)
+        try:
+            col.update({'_id': formatted['_id']}, {'$set': formatted}, upsert=True)
+        except PyMongoError:
+            raise
 
     ''' Mongodb Task Progress'''
 
@@ -142,7 +145,10 @@ class DatabaseManager:
         col = self.__col_task
         uuid = task['uuid']
         detail = detail or {}
-        col.update({'_id': uuid}, {'$set': {'status': {'code': code, 'detail': detail}}}, upsert=True)
+        try:
+            col.update({'_id': uuid}, {'$set': {'status': {'code': code, 'detail': detail}}}, upsert=True)
+        except PyMongoError:
+            raise
 
     def update_task_status_queueing(self, task, detail=None):
         """
@@ -206,11 +212,13 @@ class DatabaseManager:
         """
         Used by master
         Read all task statuses
-        :param code: find for given status.code
         :return: all task statuses
         """
         col = self.__col_task
-        docs = col.find({}, {'_id': 1, 'status': 1})
+        try:
+            docs = col.find({}, {'_id': 1, 'status': 1})
+        except PyMongoError:
+            raise
         out = []
         for doc in docs:
             uuid = doc['_id']
@@ -222,18 +230,23 @@ class DatabaseManager:
             }]
         return out
 
-    def list_task_unfinished(self):
+    def list_unfinished_task_basics(self):
         """
         Used by master
-        :return: All unfinished tasks (basics for re-queueing and status)
+        :return: All unfinished tasks (including task basics)
         """
         col = self.__col_task
-        docs = col.find({'status.code': {'$not': {'$eq': 0}}}, {'progress': 0})
-        formatted = []
+        try:
+            docs = col.find({'status.code': {'$not': {'$eq': 0}}}, {'progress': 0})
+        except PyMongoError:
+            raise
+        out = []
         for doc in docs:
             doc['uuid'] = doc.pop('_id')
-            formatted += [doc]
-        return formatted
+            doc.pop('status', None)
+            doc.pop('progress', None)
+            out += [doc]
+        return out
 
     ''' Redis Filter '''
 

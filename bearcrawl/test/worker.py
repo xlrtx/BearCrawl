@@ -7,16 +7,16 @@ import json
 
 class Worker(BaseWorker):
     def __init__(self):
-        super(Worker, self).__init__('grrrr')
+        super(Worker, self).__init__('grrrr', queue_port=34556)
 
     def __gen_str(self, size, chars=string.ascii_uppercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
 
     def __test_read_progress(self, worker_id):
         print worker_id, 'reading progress'
-        progress = self.read_progress()
+        progress = self.read_progress('progress')
         if progress:
-            print json.dumps(progress, indent=4)
+            print progress
         else:
             print 'No Progress.'
 
@@ -28,12 +28,12 @@ class Worker(BaseWorker):
         print worker_id, 'saving dump'
         self.save_dump([{'data': 1}, {'data': 2}])
 
-    def task_handler(self, task):
+    def task_handler(self, uuid, domain, module, params):
         worker_id = 'worker ' + self.__gen_str(4)
 
         # Print task
         print worker_id, 'got task, task is'
-        print json.dumps(task, indent=4)
+        print json.dumps({'uuid': uuid, 'domain': domain, 'module': module, 'params': params}, indent=4)
 
         # Read progress
         self.__test_read_progress(worker_id)
