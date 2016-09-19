@@ -97,7 +97,7 @@ class BaseMaster(object):
             'module': module,
             'params': params
         }
-        self.__tqs.put_task(domain, module, params, uuid)
+        self.__tqs.put_task(task['domain'], task['module'], task['params'], task['uuid'])
         self.__dbm.update_task_basics(task)
         self.__dbm.update_task_status_queueing(task)
         return None
