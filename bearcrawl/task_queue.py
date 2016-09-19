@@ -1,6 +1,5 @@
-from Queue import Full
 from Queue import Queue
-from utils import gen_uuid
+from Queue import Full
 from multiprocessing.managers import BaseManager as QueueManager
 
 
@@ -29,24 +28,7 @@ class TaskQueueServer(BaseTaskQueue):
         print '[Task Queue Server] Shutting down'
         self.__manager.shutdown()
 
-    def load_unfinished_tasks(self, dbm):
-        tasks = dbm.list_unfinished_task_basics()
-        for task in tasks:
-            try:
-                self.put_task(**task)
-            except Full:
-                print 'Task queue is full.'
-                continue
-            else:
-                dbm.update_task_basics(task)
-                dbm.update_task_status_queueing(task)
-        print '[Task Queue Server] Load', len(tasks), 'unfinished tasks'
-
-    @classmethod
-    def print_unfinished_tasks(cls, dbm):
-        dbm.list_unfinished_task_basics(verbal=True)
-
-    def put_task(self, domain, module, params, uuid=None):
+    def put_task(self, domain, module, params, uuid):
         """
         Put a task into queue
         :param domain: Domain name indicating which db name mongo will use and prefix redis key will use,
@@ -57,7 +39,7 @@ class TaskQueueServer(BaseTaskQueue):
         :return:
         """
         task = {
-            'uuid': uuid or gen_uuid(),
+            'uuid': uuid,
             'domain': domain,
             'module': module,
             'params': params

@@ -1,6 +1,7 @@
 from bearcrawl import BaseMaster
 from bearcrawl import RPCProxy
 from xmlrpclib import Fault
+from bearcrawl.error import RPCQueueFull
 import threading
 import string
 import random
@@ -44,6 +45,8 @@ def test_put_task(rpc_proxy):
     }
     try:
         return rpc_proxy.put_task(domain, module, dict_params)
+    except RPCQueueFull:
+        print 'Queue Full'
     except Fault as err:
         print 'Fault code', err.faultCode
         print 'Fault string', err.faultString
