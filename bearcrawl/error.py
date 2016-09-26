@@ -13,3 +13,7 @@ class RPCQueueFull(BearCrawlException):
 
 class RPCDBError(BearCrawlException):
     """ DB Error """
+
+
+class InvalidParamArrSize(BearCrawlException):
+    """ Param array's size is different than urls's """

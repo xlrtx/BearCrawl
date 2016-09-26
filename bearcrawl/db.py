@@ -45,6 +45,8 @@ class DatabaseManager:
         :param data: dump data in array
         :return: number of duplicates
         """
+        if not data:
+            return 0
         domain = task['domain']
         module = task['module']
         db = self.__mongo_conn[domain]

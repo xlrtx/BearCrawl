@@ -1,8 +1,11 @@
+from error import InvalidParamArrSize
 import sys
 import random
 import requests
 import traceback
 import functools
+import collections
+from itertools import izip
 from itertools import chain
 from time import sleep
 import multiprocessing
@@ -12,47 +15,68 @@ RETRY_TIMES = 10
 PROXIES = None
 
 
-def getn(urls, filter_func, map_reduce=True, ordered=False, chain_results=False, threads=None, **kwargs):
-    return requestn("GET", urls, filter_func, map_reduce=map_reduce, ordered=ordered,
+# TODO if size too big, use batch
+# TODO try kwargs in params_arr
+
+def get(url, filter_func, params=None, **kwargs):
+    return request('GET', url, filter_func, params, **kwargs)
+
+
+def post(url, filter_func, params=None, **kwargs):
+    return request('POST', url, filter_func, params, **kwargs)
+
+
+def request(method, url, filter_func, params=None, **kwargs):
+    if not params:
+        params = []
+    return __crawl(method, filter_func, (url, params), **kwargs)
+
+
+def getn(urls, filter_func, params_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
+    return requestn("GET", urls, filter_func, params_arr=params_arr, map_reduce=map_reduce,
                     threads=threads, chain_results=chain_results, **kwargs)
 
 
-def postn(urls, filter_func, map_reduce=True, ordered=False, chain_results=False, threads=None, **kwargs):
-    return requestn("POST", urls, filter_func, map_reduce=map_reduce, ordered=ordered,
+def postn(urls, filter_func, params_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
+    return requestn("POST", urls, filter_func, params_arr=params_arr, map_reduce=map_reduce,
                     threads=threads, chain_results=chain_results, **kwargs)
 
 
-def requestn(method, urls, filter_func, map_reduce=True, ordered=False,
-             chain_results=False, threads=None, **kwargs):
+def requestn(method, urls, filter_func, params_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
     """
     Request multiple urls
     :param method: request method
     :param urls: url array
     :param filter_func: filter function to parse a single response, return filtered data
+    :param params_arr: parameters passed in filter function appended after r object, must be same length as len(url)
     :param map_reduce: use multi-threaded map reduce by default, if not, single-threaded
-    :param ordered: not ordered (map_async) by default, if not, use map.
     :param chain_results: if return an array of arrays, join arrays together
     :param threads: number of threads
     :param kwargs: kwargs passed to requests
     :return: filtered results
     """
+    if not params_arr:
+        count_urls = len(urls)
+        params_arr = [[]] * count_urls
+    else:
+        if len(urls) != len(params_arr):
+            raise InvalidParamArrSize
+
     if map_reduce:
         threads = threads if threads else multiprocessing.cpu_count()
         pool = ThreadPool(threads)
-        if ordered:
-            results = pool.map(functools.partial(__crawl, method, filter_func, **kwargs), urls)
-        else:
-            results = pool.map_async(functools.partial(__crawl, method, filter_func, **kwargs), urls) \
-                .get(99999)
+        results = pool.map(functools.partial(__crawl, method, filter_func, **kwargs), izip(urls, params_arr))
         pool.close()
         pool.join()
+
         if chain_results:
             results = list(chain.from_iterable(results))
 
     else:
+        # TODO Haven't tested fully
         results = []
-        for url in urls:
-            data = __crawl(method, filter_func, url, **kwargs)
+        for url, params in izip(urls, params_arr):
+            data = __crawl(method, filter_func, (url, params), **kwargs)
             results = results + data if chain_results else results + [data]
 
     return results
@@ -75,7 +99,7 @@ def __retry(func):
                         print arg
                     print '====kwArgs===='
                     for k, v in kwargs.iteritems():
-                        print k, ':', v
+                        print k, ' : ', v
                     print '============='
                     raise Exception('Retry Failed - ' + e.__class__.__name__)
                 sleep(1)
@@ -84,15 +108,19 @@ def __retry(func):
 
 
 @__retry
-def __crawl(method, filter_func, url, **kwargs):
+def __crawl(method, filter_func, tup, **kwargs):
+    url = tup[0]
+    params = tup[1]
     if PROXIES and 'proxies' not in kwargs:
         proxies = __pick_one_proxy()
         r = requests.request(method, url, proxies=proxies, **kwargs)
     else:
         r = requests.request(method, url, **kwargs)
-    if filter_func:
-        return filter_func(r)
-    return r
+
+    if isinstance(params, collections.Sequence) and not isinstance(params, basestring):
+        return filter_func(r, *params)
+    else:
+        return filter_func(r, params)
 
 
 def set_proxies(dict_proxies):
