@@ -77,10 +77,39 @@ class DatabaseManager:
 
     ''' Mongodb Task Basics '''
 
+    def save_task_basics(self, task):
+        """
+        Used by master
+        save task basics, including uuid, domain, module and params
+
+        Format of task from message queue
+        task = {
+            'uuid': '',
+            'domain': '',
+            'module': '',
+            'params': ''
+        }
+        :param task:
+        :return:
+        """
+        col = self.__col_task
+        formatted = {
+            '_id': task['uuid'],
+            'domain': task['domain'],
+            'module': task['module'],
+            'params': task['params']
+        }
+        try:
+            col.insert_one(formatted)
+        except PyMongoError:
+            raise
+
+    ''' Mongodb Task Basics '''
+
     def update_task_basics(self, task):
         """
-        Used by worker
-        save task basics, including uuid, domain, module and params
+        Used by master
+        update task basics, including uuid, domain, module and params
 
         Format of task from message queue
         task = {

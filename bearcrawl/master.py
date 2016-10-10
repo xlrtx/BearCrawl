@@ -74,7 +74,6 @@ class BaseMaster(object):
                 print 'Task queue is full.'
                 continue
             else:
-                self.__dbm.update_task_basics(task)
                 self.__dbm.update_task_status_queueing(task)
         print '[Task Queue Server] Load', len(tasks), 'unfinished tasks'
 
@@ -98,7 +97,7 @@ class BaseMaster(object):
             'params': params
         }
         self.__tqs.put_task(task['domain'], task['module'], task['params'], task['uuid'])
-        self.__dbm.update_task_basics(task)
+        self.__dbm.save_task_basics(task)
         self.__dbm.update_task_status_queueing(task)
         return None
 

@@ -25,9 +25,9 @@ class BaseWorker(object):
         self.__dbm.update_task_status_working(task)
         try:
             self.task_handler(task['uuid'], task['domain'], task['module'], task['params'])
-        except Exception:
+        except Exception, e:
             # TODO add error to detail
-            self.__dbm.update_task_status_error(task)
+            self.__dbm.update_task_status_error(task, detail=e.message)
             exec_info = sys.exc_info()
             traceback.print_exception(*exec_info)
             return False

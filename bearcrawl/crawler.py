@@ -16,7 +16,7 @@ PROXIES = None
 
 
 # TODO if size too big, use batch
-# TODO try kwargs in params_arr
+# TODO try kwargs in args_arr
 
 def get(url, filter_func, params=None, **kwargs):
     return request('GET', url, filter_func, params, **kwargs)
@@ -32,40 +32,40 @@ def request(method, url, filter_func, params=None, **kwargs):
     return __crawl(method, filter_func, (url, params), **kwargs)
 
 
-def getn(urls, filter_func, params_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
-    return requestn("GET", urls, filter_func, params_arr=params_arr, map_reduce=map_reduce,
+def getn(urls, filter_func, args_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
+    return requestn("GET", urls, filter_func, args_arr=args_arr, map_reduce=map_reduce,
                     threads=threads, chain_results=chain_results, **kwargs)
 
 
-def postn(urls, filter_func, params_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
-    return requestn("POST", urls, filter_func, params_arr=params_arr, map_reduce=map_reduce,
+def postn(urls, filter_func, args_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
+    return requestn("POST", urls, filter_func, args_arr=args_arr, map_reduce=map_reduce,
                     threads=threads, chain_results=chain_results, **kwargs)
 
 
-def requestn(method, urls, filter_func, params_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
+def requestn(method, urls, filter_func, args_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
     """
     Request multiple urls
     :param method: request method
     :param urls: url array
     :param filter_func: filter function to parse a single response, return filtered data
-    :param params_arr: parameters passed in filter function appended after r object, must be same length as len(url)
+    :param args_arr: parameters passed in filter function appended after r object, must be same length as len(url)
     :param map_reduce: use multi-threaded map reduce by default, if not, single-threaded
     :param chain_results: if return an array of arrays, join arrays together
     :param threads: number of threads
     :param kwargs: kwargs passed to requests
     :return: filtered results
     """
-    if not params_arr:
+    if not args_arr:
         count_urls = len(urls)
-        params_arr = [[]] * count_urls
+        args_arr = [[]] * count_urls
     else:
-        if len(urls) != len(params_arr):
+        if len(urls) != len(args_arr):
             raise InvalidParamArrSize
 
     if map_reduce:
         threads = threads if threads else multiprocessing.cpu_count()
         pool = ThreadPool(threads)
-        results = pool.map(functools.partial(__crawl, method, filter_func, **kwargs), izip(urls, params_arr))
+        results = pool.map(functools.partial(__crawl, method, filter_func, **kwargs), izip(urls, args_arr))
         pool.close()
         pool.join()
 
@@ -75,7 +75,7 @@ def requestn(method, urls, filter_func, params_arr=None, map_reduce=True, chain_
     else:
         # TODO Haven't tested fully
         results = []
-        for url, params in izip(urls, params_arr):
+        for url, params in izip(urls, args_arr):
             data = __crawl(method, filter_func, (url, params), **kwargs)
             results = results + data if chain_results else results + [data]
 
