@@ -18,18 +18,18 @@ PROXIES = None
 # TODO if size too big, use batch
 # TODO try kwargs in args_arr
 
-def get(url, filter_func, params=None, **kwargs):
-    return request('GET', url, filter_func, params, **kwargs)
+def get(url, filter_func, args=None, **kwargs):
+    return request('GET', url, filter_func, args, **kwargs)
 
 
-def post(url, filter_func, params=None, **kwargs):
-    return request('POST', url, filter_func, params, **kwargs)
+def post(url, filter_func, args=None, **kwargs):
+    return request('POST', url, filter_func, args, **kwargs)
 
 
-def request(method, url, filter_func, params=None, **kwargs):
-    if not params:
-        params = []
-    return __crawl(method, filter_func, (url, params), **kwargs)
+def request(method, url, filter_func, args=None, **kwargs):
+    if not args:
+        args = []
+    return __crawl(method, filter_func, (url, args), **kwargs)
 
 
 def getn(urls, filter_func, args_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
@@ -75,8 +75,8 @@ def requestn(method, urls, filter_func, args_arr=None, map_reduce=True, chain_re
     else:
         # TODO Haven't tested fully
         results = []
-        for url, params in izip(urls, args_arr):
-            data = __crawl(method, filter_func, (url, params), **kwargs)
+        for url, args in izip(urls, args_arr):
+            data = __crawl(method, filter_func, (url, args), **kwargs)
             results = results + data if chain_results else results + [data]
 
     return results
@@ -110,17 +110,17 @@ def __retry(func):
 @__retry
 def __crawl(method, filter_func, tup, **kwargs):
     url = tup[0]
-    params = tup[1]
+    args = tup[1]
     if PROXIES and 'proxies' not in kwargs:
         proxies = __pick_one_proxy()
         r = requests.request(method, url, proxies=proxies, **kwargs)
     else:
         r = requests.request(method, url, **kwargs)
 
-    if isinstance(params, collections.Sequence) and not isinstance(params, basestring):
-        return filter_func(r, *params)
+    if isinstance(args, collections.Sequence) and not isinstance(args, basestring):
+        return filter_func(r, *args)
     else:
-        return filter_func(r, params)
+        return filter_func(r, args)
 
 
 def set_proxies(dict_proxies):
