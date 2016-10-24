@@ -11,6 +11,11 @@ from threading import Thread
 from pymongo.errors import PyMongoError
 
 
+# TODO add task type - routine or normal
+# TODO reload task if empty
+# TODO reload routine tasks
+# TODO add more stdout
+
 def rpc(func):
     def inner(*args, **kwargs):
         ret = {
@@ -24,7 +29,7 @@ def rpc(func):
         except Full:
             ret['code'] = RPCCode.QUEUE_FULL
         except Exception:
-            raise
+            ret['code'] = RPCCode.UNKNOWN_ERR
         return ret
 
     return inner
@@ -45,13 +50,14 @@ class BaseMaster(object):
         self.__rpcs.register_function(self.list_unfinished_task_basics, 'list_unfinished_task_basics')
         self.__rpcs.register_function(self.list_task_status, 'list_task_status')
         self.__rpcs.register_function(self.put_task, 'put_task')
+        self.__rpcs.register_function(self.put_tasks, 'put_tasks')
 
         # Create thread and serve rpc forever
         thread_rpcs = RPCServerThread(self.__rpcs)
         thread_rpcs.setDaemon(True)
         thread_rpcs.start()
 
-        # Setup signal
+        # Setup signals
         signal.signal(signal.SIGINT, self.signal_handler)
 
         # Works forever
@@ -77,9 +83,6 @@ class BaseMaster(object):
                 self.__dbm.update_task_status_queueing(task)
         print '[Task Queue Server] Load', len(tasks), 'unfinished tasks'
 
-    def print_unfinished_tasks(self):
-        self.__dbm.list_unfinished_task_basics(verbal=True)
-
     @rpc
     def list_unfinished_task_basics(self):
         return self.__dbm.list_unfinished_task_basics()
@@ -90,6 +93,9 @@ class BaseMaster(object):
 
     @rpc
     def put_task(self, domain, module, params, uuid=None):
+        return self.put_task_naked(domain, module, params, uuid=uuid)
+
+    def put_task_naked(self, domain, module, params, uuid=None):
         task = {
             'uuid': uuid or gen_uuid(),
             'domain': domain,
@@ -99,6 +105,12 @@ class BaseMaster(object):
         self.__tqs.put_task(task['domain'], task['module'], task['params'], task['uuid'])
         self.__dbm.save_task_basics(task)
         self.__dbm.update_task_status_queueing(task)
+        return None
+
+    @rpc
+    def put_tasks(self, tasks):
+        for task in tasks:
+            self.put_task_naked(task['domain'], task['module'], task['params'], uuid=task.get('uuid', None))
         return None
 
 

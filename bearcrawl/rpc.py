@@ -9,6 +9,7 @@ class Code:
 
     QUEUE_FULL = -1
     DB_ERR = -2
+    UNKNOWN_ERR = -3
     SUCCESS = 0
 
 

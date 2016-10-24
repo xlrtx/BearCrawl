@@ -47,6 +47,8 @@ class DatabaseManager:
         """
         if not data:
             return 0
+        if not isinstance(data, list):
+            data = [data]
         domain = task['domain']
         module = task['module']
         db = self.__mongo_conn[domain]

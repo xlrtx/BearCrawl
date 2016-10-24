@@ -68,7 +68,7 @@ def requestn(method, urls, filter_func, args_arr=None, map_reduce=True, chain_re
         results = pool.map(functools.partial(__crawl, method, filter_func, **kwargs), izip(urls, args_arr))
         pool.close()
         pool.join()
-
+        results = [each for each in results if each is not None]
         if chain_results:
             results = list(chain.from_iterable(results))
 
@@ -77,6 +77,8 @@ def requestn(method, urls, filter_func, args_arr=None, map_reduce=True, chain_re
         results = []
         for url, args in izip(urls, args_arr):
             data = __crawl(method, filter_func, (url, args), **kwargs)
+            if data is None:
+                continue
             results = results + data if chain_results else results + [data]
 
     return results

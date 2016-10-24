@@ -1,5 +1,5 @@
 import uuid
-
+import time
 
 def batch(iterable, n=1):
     l = len(iterable)
@@ -9,3 +9,8 @@ def batch(iterable, n=1):
 
 def gen_uuid():
     return str(uuid.uuid1())
+
+
+# %Y%m%d
+def str_to_timestamp(ts_str, format_str):
+    return int(time.mktime(time.strptime(ts_str, format_str)))
