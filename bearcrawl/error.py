@@ -17,3 +17,7 @@ class RPCDBError(BearCrawlException):
 
 class InvalidParamArrSize(BearCrawlException):
     """ Param array's size is different than urls's """
+
+
+class InvalidThreadSize(BearCrawlException):
+    """ Thread size less than one """

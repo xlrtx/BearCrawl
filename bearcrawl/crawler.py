@@ -1,4 +1,5 @@
 from error import InvalidParamArrSize
+from error import InvalidThreadSize
 import sys
 import random
 import requests
@@ -32,17 +33,17 @@ def request(method, url, filter_func, args=None, **kwargs):
     return __crawl(method, filter_func, (url, args), **kwargs)
 
 
-def getn(urls, filter_func, args_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
-    return requestn("GET", urls, filter_func, args_arr=args_arr, map_reduce=map_reduce,
+def getn(urls, filter_func, args_arr=None, chain_results=False, threads=None, **kwargs):
+    return requestn("GET", urls, filter_func, args_arr=args_arr,
                     threads=threads, chain_results=chain_results, **kwargs)
 
 
-def postn(urls, filter_func, args_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
-    return requestn("POST", urls, filter_func, args_arr=args_arr, map_reduce=map_reduce,
+def postn(urls, filter_func, args_arr=None, chain_results=False, threads=None, **kwargs):
+    return requestn("POST", urls, filter_func, args_arr=args_arr,
                     threads=threads, chain_results=chain_results, **kwargs)
 
 
-def requestn(method, urls, filter_func, args_arr=None, map_reduce=True, chain_results=False, threads=None, **kwargs):
+def requestn(method, urls, filter_func, args_arr=None, chain_results=False, threads=None, **kwargs):
     """
     Request multiple urls
     :param method: request method
@@ -62,7 +63,10 @@ def requestn(method, urls, filter_func, args_arr=None, map_reduce=True, chain_re
         if len(urls) != len(args_arr):
             raise InvalidParamArrSize
 
-    if map_reduce:
+    if threads < 1:
+        raise InvalidThreadSize
+
+    if threads >= 1:
         threads = threads if threads else multiprocessing.cpu_count()
         pool = ThreadPool(threads)
         results = pool.map(functools.partial(__crawl, method, filter_func, **kwargs), izip(urls, args_arr))
